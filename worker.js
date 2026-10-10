@@ -71,14 +71,15 @@ const ANSWER_RULES = [
   '1. Use only MATERIAL. Do not answer from your own knowledge, and do not add any number, date, name, threshold, practice or claim that is not in MATERIAL.',
   '2. Prefer AgriKalkunahon\'s own texts. Use the search results for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says", "Wikidata lists" or "a 2019 study from Japan found".',
   '3. Keep figures, names and citations exactly as MATERIAL gives them, for example "1.5 to 3.9 °C (Basquial et al. 2021)" or "Pterocarpus indicus".',
-  '4. For a local or scientific name, give each name with its language or place when MATERIAL gives one. Local names differ from place to place: if MATERIAL gives several, give them. If MATERIAL ties one name to more than one species, say so, and say which of them MATERIAL ties to the Philippines.',
-  '5. If MATERIAL answers only part of the question, say what it does say, then say plainly what it does not, and why if MATERIAL says why (a short record, a method calibrated elsewhere, a value that could not be verified).',
-  '6. If a study or article is about another country, crop or season, say so. If two texts disagree, say so; do not choose between them silently.',
-  '7. If one of the app\'s calculations would help the farmer further, say which, by its title, and what the farmer would need for it.',
-  '8. If MATERIAL names who sets the official guidance (PAGASA, DA, BFAR, PhilRice, BPI, the product label), say to follow them.',
-  '9. Only if nothing in MATERIAL relates to the question, reply with exactly NO_SOURCE and nothing else.',
-  '10. Otherwise begin your reply with a line USED: followed by the ids of the texts you relied on, separated by commas. Then a blank line. Then the answer, at most eight sentences, plus a short list when the question asks for names.',
-  ...COMMON.map((x, i) => (i + 11) + '. ' + x)
+  '4. Never make a statement wider or stronger than MATERIAL makes it, in any language. For example, "a distinct population from the Philippines" or "native to the Philippines" does not mean "found only in the Philippines", and "widely considered" does not mean "officially". Keep the limits MATERIAL gives, such as the other places where something is also found.',
+  '5. For a local or scientific name, give each name with its language or place when MATERIAL gives one. Local names differ from place to place: if MATERIAL gives several, give them. If MATERIAL ties one name to more than one species, say so, and say which of them MATERIAL ties to the Philippines.',
+  '6. If MATERIAL answers only part of the question, say what it does say, then say plainly what it does not, and why if MATERIAL says why (a short record, a method calibrated elsewhere, a value that could not be verified).',
+  '7. If a study or article is about another country, crop or season, say so. If two texts disagree, say so; do not choose between them silently.',
+  '8. If one of the app\'s calculations would help the farmer further, say which, by its title, and what the farmer would need for it.',
+  '9. If MATERIAL names who sets the official guidance (PAGASA, DA, BFAR, PhilRice, BPI, the product label), say to follow them.',
+  '10. Only if nothing in MATERIAL relates to the question, reply with exactly NO_SOURCE and nothing else.',
+  '11. Otherwise begin your reply with a line USED: followed by the ids of the texts you relied on, separated by commas. Then a blank line. Then the answer, at most eight sentences, plus a short list when the question asks for names.',
+  ...COMMON.map((x, i) => (i + 12) + '. ' + x)
 ].join('\n');
 
 const seen = new Map();
