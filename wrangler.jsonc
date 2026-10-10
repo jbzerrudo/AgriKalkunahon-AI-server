@@ -1,0 +1,8 @@
+{
+  // AgriKalkunahon-AI server. The name must match the Worker's name in the Cloudflare dashboard.
+  "name": "agrikalkunahon-ai",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-01",
+  "ai": { "binding": "AI" },
+  "workers_dev": true
+}
