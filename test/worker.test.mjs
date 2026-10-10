@@ -40,6 +40,7 @@ ok('route model', c.model === '@cf/qwen/qwen3.8-27b', c.model);
 ok('route temperature 0', c.params.temperature === 0);
 ok('route thinking off', c.params.reasoning_effort === 'low' && c.params.chat_template_kwargs.enable_thinking === false);
 ok('route rules are the server\'s', /Copy them exactly/.test(c.params.messages[0].content) && c.params.messages[0].role === 'system');
+ok('route rules ask for search words', /"search": "<search words>"/.test(c.params.messages[0].content) && /look the question up in an encyclopedia/.test(c.params.messages[0].content));
 ok('route question last', /Question: Spray\? 32 degrees$/.test(c.params.messages[1].content));
 ok('route not streamed', !c.params.stream);
 behaviour = () => ({ choices: [{ message: { content: '{"card":"none","quotes":{}}' } }] });
@@ -65,8 +66,52 @@ await r.text();
 c = calls[calls.length - 1];
 ok('answer rules', /reply with exactly NO_SOURCE/.test(c.params.messages[0].content) && /USED:/.test(c.params.messages[0].content));
 ok('answer material first', c.params.messages[1].content.startsWith('MATERIAL:\n[rice]'));
-ok('rules numbered in order', /\n7\. Do not list sources/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-200));
+ok('rules numbered in order', /\n13\. Do not list sources/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-200));
+ok('answer rules: partial answers, limits, sources named', /say what it does say, then say plainly what it does not/.test(c.params.messages[0].content) && /say in the sentence where it comes from/.test(c.params.messages[0].content) && /Keep figures and citations exactly/.test(c.params.messages[0].content));
 
+/* search: Wikipedia and OpenAlex, with a stand-in for the network */
+const realFetch = globalThis.fetch;
+let fetched = [], netMode = 'ok';
+globalThis.fetch = async (url, opts) => {
+  fetched.push({ url: String(url), ua: opts && opts.headers && opts.headers['User-Agent'], apiUa: opts && opts.headers && opts.headers['Api-User-Agent'] });
+  if (netMode === 'down') throw new Error('network down');
+  if (String(url).startsWith('https://en.wikipedia.org/')) return new Response(JSON.stringify({ query: { pages: [
+    { title: 'Frost', index: 2, fullurl: 'https://en.wikipedia.org/wiki/Frost', extract: 'Frost is a thin layer of ice on a solid surface.' },
+    { title: 'Benguet', index: 1, fullurl: 'https://en.wikipedia.org/wiki/Benguet', extract: 'Benguet is a landlocked province in the Cordillera.' },
+    { title: 'Empty', index: 3, fullurl: 'https://en.wikipedia.org/wiki/Empty' } ] } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  if (String(url).startsWith('https://api.openalex.org/')) return new Response(JSON.stringify({ results: [
+    { display_name: 'Frost occurrence in Benguet', publication_year: 2017, doi: 'https://doi.org/10.1/x',
+      authorships: [{ author: { display_name: 'R. Marasigan' } }, { author: { display_name: 'A. B' } }, { author: { display_name: 'C. D' } }],
+      primary_location: { source: { display_name: 'Some Journal' } }, open_access: { is_oa: true, oa_url: 'https://example.org/oa.pdf' },
+      abstract_inverted_index: { 'Frost': [0], 'occurs': [1], 'in': [2, 5], 'Benguet': [3], 'mostly': [4], 'January.': [6] } },
+    { display_name: 'No abstract', publication_year: 2020, abstract_inverted_index: null } ] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  return new Response('nf', { status: 404 });
+};
+calls = [];
+r = await W.fetch(req('POST', { task: 'search', question: 'Ano ang temperatura ng andap sa Benguet?', query: 'frost temperature Benguet andap' }), env);
+j = await r.json();
+ok('search 200 without the model', r.status === 200 && calls.length === 0, { status: r.status, calls: calls.length });
+ok('search: Wikipedia in rank order, empty extracts dropped', j.results.filter(x => x.source === 'Wikipedia').map(x => x.title).join('|') === 'Benguet|Frost', j.results.map(x => x.title));
+ok('search: paper abstract rebuilt in order', (j.results.find(x => x.source === 'OpenAlex') || {}).text === 'Frost occurs in Benguet mostly in January.', j.results);
+ok('search: paper details', (() => { const x = j.results.find(x => x.source === 'OpenAlex'); return x && x.authors === 'R. Marasigan et al.' && x.year === 2017 && x.venue === 'Some Journal' && x.url === 'https://example.org/oa.pdf' && x.id === 'paper:1'; })(), j.results);
+ok('search: paper without abstract dropped', j.results.filter(x => x.source === 'OpenAlex').length === 1);
+ok('search: query sent, encoded', fetched.some(f => f.url.includes('gsrsearch=frost%20temperature%20Benguet%20andap')) && fetched.some(f => f.url.includes('search=frost%20temperature%20Benguet%20andap')), fetched.map(f => f.url));
+ok('search: open-access filter', fetched.some(f => f.url.includes(encodeURIComponent('open_access.is_oa:true,has_abstract:true'))));
+ok('search: program named to Wikimedia', fetched.every(f => /^AgriKalkunahon-AI\/[0-9.]+ \(https:\/\/jbzerrudo\.github\.io\/AgriKalkunahon-AI\/\)$/.test(f.ua || '')) && fetched.some(f => f.apiUa));
+ok('search: no key unless set', fetched.every(f => !f.url.includes('api_key=')));
+fetched = [];
+r = await W.fetch(req('POST', { task: 'search', question: 'Ano ang andap?' }), { ...env, OPENALEX_KEY: 'k3y' });
+await r.json();
+ok('search: key used when set', fetched.some(f => f.url.includes('api_key=k3y')) && fetched.some(f => f.url.includes('gsrsearch=Ano%20ang%20andap%3F')), fetched.map(f => f.url));
+netMode = 'down';
+r = await W.fetch(req('POST', { task: 'search', question: 'q', query: 'frost' }), env);
+j = await r.json();
+ok('search: network down gives an empty list, not an error', r.status === 200 && Array.isArray(j.results) && j.results.length === 0, j);
+netMode = 'ok';
+r = await W.fetch(req('POST', { task: 'search', question: 'q', query: 'x'.repeat(201) }), env);
+j = await r.json();
+ok('search: overlong query falls back to the question', r.status === 200 && fetched[fetched.length - 1].url.includes('search=q'), fetched.slice(-2).map(f => f.url));
+globalThis.fetch = realFetch;
 behaviour = () => { throw new Error('3036: You have used up your daily free allocation of 10,000 neurons, please upgrade'); };
 r = await W.fetch(req('POST', { task: 'route', question: 'q', cards: 'c' }), env);
 ok('daily allowance used up', r.status === 429 && (await r.json()).error === 'daily_limit');
