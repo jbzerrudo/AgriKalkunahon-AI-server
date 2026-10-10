@@ -18,7 +18,7 @@
              the app uses it; from 0.4.0 the app looks things up from the phone.
      answer  answers a question no calculation covers, using only the texts the app sends: AgriKalkunahon's
              own explanations, limits and sources, and what the app found in Wikipedia, Wikidata, GBIF
-             and open-access journal articles. It says NO_SOURCE when none of them relates to the question.
+             and journal articles. It says NO_SOURCE when none of them relates to the question.
    The rules the AI must follow are fixed here, so no page can replace them. Requests are accepted only
    from the app's own site, with limits on size, and a light limit per address. The real limit is the
    free daily allowance of Workers AI: when it is used up the app is told so, and nothing is charged. */
@@ -46,7 +46,8 @@ const ROUTE_RULES = [
   '6. In "search", give the few English words someone would type to look the question up in an encyclopedia or a library of science, for example "frost Benguet highland vegetables" or "red tide shellfish poisoning". English words only, translated if the question is in another language. No full sentence.',
   '7. In "topics", give up to three titles of English Wikipedia articles most likely to hold the answer, the most likely first, for example ["Philippines", "Geography of the Philippines"] or ["Harmful algal bloom"]. Give titles only, never the answer itself.',
   '8. In "names", copy each name of a plant, animal, fish, insect, pest or plant disease in the question exactly as it is written there, local or scientific, for example ["bangus"] or ["Pterocarpus indicus"]. Give [] if there is none.',
-  '9. If the question is not about farming, fishing or aquaculture, plants or animals, food, soil or water, weather or climate, the environment, or the geography of the Philippines, give "none" with an empty "search" and empty "topics" and "names".'
+  '9. If the question is not about farming, fishing or aquaculture, plants or animals, food, soil or water, weather or climate, the environment, or the geography of the Philippines, give "none" with an empty "search" and empty "topics" and "names".',
+  '10. A word you do not know is not a reason for rule 9: it may be a local name of a plant, animal, food or place. Copy it into "names" and into "search".'
 ].join('\n');
 
 const COMMON = [
@@ -66,7 +67,7 @@ const ADVISE_RULES = [
 ].join('\n');
 const ANSWER_RULES = [
   'You are the AI in AgriKalkunahon-AI, an app for farmers and fisherfolk in the Philippines. It answers questions on farming, fishing and aquaculture, plants and animals, soil and water, weather and climate, the environment, and the geography of the Philippines. A farmer asked QUESTION, and none of the app\'s calculations answers it by itself.',
-  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. The other texts were found by a search for this question and have not been checked by AgriKalkunahon: wiki: from Wikipedia, wd: from Wikidata (the open database behind Wikipedia), gbif: from GBIF (the Global Biodiversity Information Facility), and paper: from open-access journal articles.',
+  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. The other texts were found by a search for this question and have not been checked by AgriKalkunahon: wiki: from Wikipedia, wd: from Wikidata (the open database behind Wikipedia), gbif: from GBIF (the Global Biodiversity Information Facility), and paper: from journal articles found through OpenAlex (for some of them only the abstract is open).',
   'Rules:',
   '1. Use only MATERIAL. Do not answer from your own knowledge, and do not add any number, date, name, threshold, practice or claim that is not in MATERIAL.',
   '2. Prefer AgriKalkunahon\'s own texts. Use the search results for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says", "Wikidata lists" or "a 2019 study from Japan found".',

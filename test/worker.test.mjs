@@ -43,7 +43,8 @@ ok('route rules are the server\'s', /Copy them exactly/.test(c.params.messages[0
 ok('route rules ask for English search words', /"search": "<English search words>"/.test(c.params.messages[0].content) && /look the question up in an encyclopedia/.test(c.params.messages[0].content) && /English words only/.test(c.params.messages[0].content));
 ok('route rules ask for Wikipedia titles and names', /"topics": \["<title of an English Wikipedia article>"\]/.test(c.params.messages[0].content) && /"names": \["<name of a plant or animal, copied from the question>"\]/.test(c.params.messages[0].content) && /never the answer itself/.test(c.params.messages[0].content));
 ok('route rules: look-ups only when no calculation answers', /Fill "search", "topics" and "names" only when "card" is "none"/.test(c.params.messages[0].content));
-ok('route rules: off-topic questions get no look-ups', /\n9\. If the question is not about farming/.test(c.params.messages[0].content) && /empty "search" and empty "topics" and "names"\.$/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-300));
+ok('route rules: off-topic questions get no look-ups', /\n9\. If the question is not about farming/.test(c.params.messages[0].content) && /empty "search" and empty "topics" and "names"\.\n/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-400));
+ok('route rules: an unknown word is looked up, not called off-topic', /\n10\. A word you do not know is not a reason for rule 9: it may be a local name of a plant, animal, food or place\. Copy it into "names" and into "search"\.$/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-300));
 ok('route question last', /Question: Spray\? 32 degrees$/.test(c.params.messages[1].content));
 ok('route not streamed', !c.params.stream);
 behaviour = () => ({ choices: [{ message: { content: '{"card":"none","quotes":{}}' } }] });
@@ -72,7 +73,7 @@ ok('answer material first', c.params.messages[1].content.startsWith('MATERIAL:\n
 ok('rules numbered in order', /\n15\. Do not list sources/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-200));
 ok('answer rules: nothing wider or stronger than the material', /\n4\. Never make a statement wider or stronger than MATERIAL makes it, in any language\./.test(c.params.messages[0].content) && /does not mean "found only in the Philippines"/.test(c.params.messages[0].content) && /the other places where something is also found/.test(c.params.messages[0].content));
 ok('answer rules: partial answers, limits, sources named', /say what it does say, then say plainly what it does not/.test(c.params.messages[0].content) && /say in the sentence where it comes from/.test(c.params.messages[0].content) && /Keep figures, names and citations exactly/.test(c.params.messages[0].content));
-ok('answer rules: the four searched sources named', /wiki: from Wikipedia, wd: from Wikidata/.test(c.params.messages[0].content) && /gbif: from GBIF/.test(c.params.messages[0].content) && /paper: from open-access journal articles/.test(c.params.messages[0].content));
+ok('answer rules: the four searched sources named', /wiki: from Wikipedia, wd: from Wikidata/.test(c.params.messages[0].content) && /gbif: from GBIF/.test(c.params.messages[0].content) && /paper: from journal articles found through OpenAlex \(for some of them only the abstract is open\)/.test(c.params.messages[0].content));
 ok('answer rules: local and scientific names', /Local names differ from place to place/.test(c.params.messages[0].content) && /which of them MATERIAL ties to the Philippines/.test(c.params.messages[0].content));
 ok('answer rules: a calculation only when it helps', /If one of the app's calculations would help/.test(c.params.messages[0].content));
 
