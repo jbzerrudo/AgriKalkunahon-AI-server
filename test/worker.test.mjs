@@ -40,7 +40,10 @@ ok('route model', c.model === '@cf/qwen/qwen3.8-27b', c.model);
 ok('route temperature 0', c.params.temperature === 0);
 ok('route thinking off', c.params.reasoning_effort === 'low' && c.params.chat_template_kwargs.enable_thinking === false);
 ok('route rules are the server\'s', /Copy them exactly/.test(c.params.messages[0].content) && c.params.messages[0].role === 'system');
-ok('route rules ask for search words', /"search": "<search words>"/.test(c.params.messages[0].content) && /look the question up in an encyclopedia/.test(c.params.messages[0].content));
+ok('route rules ask for English search words', /"search": "<English search words>"/.test(c.params.messages[0].content) && /look the question up in an encyclopedia/.test(c.params.messages[0].content) && /English words only/.test(c.params.messages[0].content));
+ok('route rules ask for Wikipedia titles and names', /"topics": \["<title of an English Wikipedia article>"\]/.test(c.params.messages[0].content) && /"names": \["<name of a plant or animal, copied from the question>"\]/.test(c.params.messages[0].content) && /never the answer itself/.test(c.params.messages[0].content));
+ok('route rules: look-ups only when no calculation answers', /Fill "search", "topics" and "names" only when "card" is "none"/.test(c.params.messages[0].content));
+ok('route rules: off-topic questions get no look-ups', /\n9\. If the question is not about farming/.test(c.params.messages[0].content) && /empty "search" and empty "topics" and "names"\.$/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-300));
 ok('route question last', /Question: Spray\? 32 degrees$/.test(c.params.messages[1].content));
 ok('route not streamed', !c.params.stream);
 behaviour = () => ({ choices: [{ message: { content: '{"card":"none","quotes":{}}' } }] });
@@ -66,8 +69,11 @@ await r.text();
 c = calls[calls.length - 1];
 ok('answer rules', /reply with exactly NO_SOURCE/.test(c.params.messages[0].content) && /USED:/.test(c.params.messages[0].content));
 ok('answer material first', c.params.messages[1].content.startsWith('MATERIAL:\n[rice]'));
-ok('rules numbered in order', /\n13\. Do not list sources/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-200));
-ok('answer rules: partial answers, limits, sources named', /say what it does say, then say plainly what it does not/.test(c.params.messages[0].content) && /say in the sentence where it comes from/.test(c.params.messages[0].content) && /Keep figures and citations exactly/.test(c.params.messages[0].content));
+ok('rules numbered in order', /\n14\. Do not list sources/.test(c.params.messages[0].content), c.params.messages[0].content.slice(-200));
+ok('answer rules: partial answers, limits, sources named', /say what it does say, then say plainly what it does not/.test(c.params.messages[0].content) && /say in the sentence where it comes from/.test(c.params.messages[0].content) && /Keep figures, names and citations exactly/.test(c.params.messages[0].content));
+ok('answer rules: the four searched sources named', /wiki: from Wikipedia, wd: from Wikidata/.test(c.params.messages[0].content) && /gbif: from GBIF/.test(c.params.messages[0].content) && /paper: from open-access journal articles/.test(c.params.messages[0].content));
+ok('answer rules: local and scientific names', /Local names differ from place to place/.test(c.params.messages[0].content) && /which of them MATERIAL ties to the Philippines/.test(c.params.messages[0].content));
+ok('answer rules: a calculation only when it helps', /If one of the app's calculations would help/.test(c.params.messages[0].content));
 
 /* search: Wikipedia and OpenAlex, with a stand-in for the network */
 const realFetch = globalThis.fetch;

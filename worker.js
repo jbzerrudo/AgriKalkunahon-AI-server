@@ -8,15 +8,17 @@
 
    It does four things for the app, and nothing else:
      route   reads a farmer's question and says which AgriKalkunahon calculation answers it, which words
-             in the question hold each value, and which words to search for. It returns words, not
-             numbers: the app reads the numbers from those words by fixed rules, and only if the words
-             are really in the question.
+             in the question hold each value, and, for a question no calculation answers, what to look
+             up: search words, Wikipedia article titles, and the names of plants and animals in the
+             question. It returns words, not numbers: the app reads the numbers from those words by
+             fixed rules, and only if the words are really in the question.
      advise  writes advice from a calculation the app has already made, using only that calculation.
      search  looks the question up in Wikipedia and in open-access journal articles (through OpenAlex)
-             and returns what it finds, with the links. No AI is used for this.
+             and returns what it finds, with the links. No AI is used for this. Only version 0.3.0 of
+             the app uses it; from 0.4.0 the app looks things up from the phone.
      answer  answers a question no calculation covers, using only the texts the app sends: AgriKalkunahon's
-             own explanations, limits and sources, and what the search found. It says NO_SOURCE when
-             none of them relates to the question.
+             own explanations, limits and sources, and what the app found in Wikipedia, Wikidata, GBIF
+             and open-access journal articles. It says NO_SOURCE when none of them relates to the question.
    The rules the AI must follow are fixed here, so no page can replace them. Requests are accepted only
    from the app's own site, with limits on size, and a light limit per address. The real limit is the
    free daily allowance of Workers AI: when it is used up the app is told so, and nothing is charged. */
@@ -34,13 +36,17 @@ const PER_ADDRESS = 70, WINDOW_MS = 10 * 60 * 1000;
 const ROUTE_RULES = [
   "You read a farmer's question and decide which of the app's calculations answers it. Each calculation is listed with its id, what it decides, and the boxes it needs.",
   'Reply with one JSON object and nothing else, in this form:',
-  '{"card": "<id of the calculation, or none>", "quotes": {"<box id>": "<words copied from the question>"}, "search": "<search words>"}',
+  '{"card": "<id of the calculation, or none>", "quotes": {"<box id>": "<words copied from the question>"}, "search": "<English search words>", "topics": ["<title of an English Wikipedia article>"], "names": ["<name of a plant or animal, copied from the question>"]}',
   'Rules:',
   '1. Choose the calculation that decides what the farmer is asking about. If none of them does, give "none".',
   '2. For each box whose value the question states, copy the words of the question that state it, with the number and its unit, for example "32 degrees", "85%" or "June 1". Copy them exactly. Never convert, round, add up or work out a value, and never guess one.',
   '3. Leave out every box the question does not state. An empty "quotes" is normal.',
   '4. The question may be in Filipino, English, another Philippine language, or a mix of them.',
-  '5. In "search", give the few English words someone would type to look the question up in an encyclopedia or a library of farm science, followed by any Filipino farm terms in the question, for example "frost temperature Benguet andap". No full sentence.'
+  '5. Fill "search", "topics" and "names" only when "card" is "none"; otherwise leave them empty.',
+  '6. In "search", give the few English words someone would type to look the question up in an encyclopedia or a library of science, for example "frost Benguet highland vegetables" or "red tide shellfish poisoning". English words only, translated if the question is in another language. No full sentence.',
+  '7. In "topics", give up to three titles of English Wikipedia articles most likely to hold the answer, the most likely first, for example ["Philippines", "Geography of the Philippines"] or ["Harmful algal bloom"]. Give titles only, never the answer itself.',
+  '8. In "names", copy each name of a plant, animal, fish, insect, pest or plant disease in the question exactly as it is written there, local or scientific, for example ["bangus"] or ["Pterocarpus indicus"]. Give [] if there is none.',
+  '9. If the question is not about farming, fishing or aquaculture, plants or animals, food, soil or water, weather or climate, the environment, or the geography of the Philippines, give "none" with an empty "search" and empty "topics" and "names".'
 ].join('\n');
 
 const COMMON = [
@@ -59,19 +65,20 @@ const ADVISE_RULES = [
   ...COMMON.map((x, i) => (i + 5) + '. ' + x)
 ].join('\n');
 const ANSWER_RULES = [
-  'You are the AI in AgriKalkunahon-AI, a farm-weather advice app for the Philippines. A farmer asked QUESTION, and none of the app\'s calculations answers it by itself.',
-  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. Ids that start with wiki: are from Wikipedia, and paper: from open-access journal articles, found by a search for this question and not checked by AgriKalkunahon.',
+  'You are the AI in AgriKalkunahon-AI, an app for farmers and fisherfolk in the Philippines. It answers questions on farming, fishing and aquaculture, plants and animals, soil and water, weather and climate, the environment, and the geography of the Philippines. A farmer asked QUESTION, and none of the app\'s calculations answers it by itself.',
+  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. The other texts were found by a search for this question and have not been checked by AgriKalkunahon: wiki: from Wikipedia, wd: from Wikidata (the open database behind Wikipedia), gbif: from GBIF (the Global Biodiversity Information Facility), and paper: from open-access journal articles.',
   'Rules:',
-  '1. Use only MATERIAL. Do not answer from your own knowledge, and do not add any number, date, threshold, practice or claim that is not in MATERIAL.',
-  '2. Prefer AgriKalkunahon\'s own texts. Use Wikipedia or a paper for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says" or "a 2019 study from Japan found".',
-  '3. Keep figures and citations exactly as MATERIAL gives them, for example "1.5 to 3.9 °C (Basquial et al. 2021)".',
-  '4. If MATERIAL answers only part of the question, say what it does say, then say plainly what it does not, and why if MATERIAL says why (a short record, a method calibrated elsewhere, a value that could not be verified).',
-  '5. If a study or article is about another country, crop or season, say so. If two texts disagree, say so; do not choose between them silently.',
-  '6. Say which of the app\'s calculations, by its title, would help the farmer further, and what the farmer would need for it.',
-  '7. If MATERIAL names who sets the official guidance (PAGASA, DA, PhilRice, BPI, the product label), say to follow them.',
-  '8. Only if nothing in MATERIAL relates to the question, reply with exactly NO_SOURCE and nothing else.',
-  '9. Otherwise begin your reply with a line USED: followed by the ids of the texts you relied on, separated by commas. Then a blank line. Then the answer, at most eight sentences.',
-  ...COMMON.map((x, i) => (i + 10) + '. ' + x)
+  '1. Use only MATERIAL. Do not answer from your own knowledge, and do not add any number, date, name, threshold, practice or claim that is not in MATERIAL.',
+  '2. Prefer AgriKalkunahon\'s own texts. Use the search results for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says", "Wikidata lists" or "a 2019 study from Japan found".',
+  '3. Keep figures, names and citations exactly as MATERIAL gives them, for example "1.5 to 3.9 °C (Basquial et al. 2021)" or "Pterocarpus indicus".',
+  '4. For a local or scientific name, give each name with its language or place when MATERIAL gives one. Local names differ from place to place: if MATERIAL gives several, give them. If MATERIAL ties one name to more than one species, say so, and say which of them MATERIAL ties to the Philippines.',
+  '5. If MATERIAL answers only part of the question, say what it does say, then say plainly what it does not, and why if MATERIAL says why (a short record, a method calibrated elsewhere, a value that could not be verified).',
+  '6. If a study or article is about another country, crop or season, say so. If two texts disagree, say so; do not choose between them silently.',
+  '7. If one of the app\'s calculations would help the farmer further, say which, by its title, and what the farmer would need for it.',
+  '8. If MATERIAL names who sets the official guidance (PAGASA, DA, BFAR, PhilRice, BPI, the product label), say to follow them.',
+  '9. Only if nothing in MATERIAL relates to the question, reply with exactly NO_SOURCE and nothing else.',
+  '10. Otherwise begin your reply with a line USED: followed by the ids of the texts you relied on, separated by commas. Then a blank line. Then the answer, at most eight sentences, plus a short list when the question asks for names.',
+  ...COMMON.map((x, i) => (i + 11) + '. ' + x)
 ].join('\n');
 
 const seen = new Map();
