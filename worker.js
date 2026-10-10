@@ -17,8 +17,8 @@
              and returns what it finds, with the links. No AI is used for this. Only version 0.3.0 of
              the app uses it; from 0.4.0 the app looks things up from the phone.
      answer  answers a question no calculation covers, using only the texts the app sends: AgriKalkunahon's
-             own explanations, limits and sources, and what the app found in Wikipedia, Wikidata, GBIF
-             and journal articles. It says NO_SOURCE when none of them relates to the question.
+             own explanations, limits and sources, and what the app found in Wikipedia, Wiktionary,
+             Wikidata, GBIF and journal articles. It says NO_SOURCE when none of them relates to the question.
    The rules the AI must follow are fixed here, so no page can replace them. Requests are accepted only
    from the app's own site, with limits on size, and a light limit per address. The real limit is the
    free daily allowance of Workers AI: when it is used up the app is told so, and nothing is charged. */
@@ -67,10 +67,10 @@ const ADVISE_RULES = [
 ].join('\n');
 const ANSWER_RULES = [
   'You are the AI in AgriKalkunahon-AI, an app for farmers and fisherfolk in the Philippines. It answers questions on farming, fishing and aquaculture, plants and animals, soil and water, weather and climate, the environment, and the geography of the Philippines. A farmer asked QUESTION, and none of the app\'s calculations answers it by itself.',
-  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. The other texts were found by a search for this question and have not been checked by AgriKalkunahon: wiki: from Wikipedia, wd: from Wikidata (the open database behind Wikipedia), gbif: from GBIF (the Global Biodiversity Information Facility), and paper: from journal articles found through OpenAlex (for some of them only the abstract is open).',
+  'MATERIAL holds texts that may be relevant, each starting with its id in square brackets. Ids that start with a calculation name, or with app:, why:, unv: or ref:, are AgriKalkunahon\'s own published texts: its explanations, assumptions, limits and references, with the sources they cite. The other texts were found by a search for this question and have not been checked by AgriKalkunahon: wiki: from Wikipedia, wikt: from Wiktionary (an open dictionary), wd: from Wikidata (the open database behind Wikipedia), gbif: from GBIF (the Global Biodiversity Information Facility), and paper: from journal articles found through OpenAlex (for some of them only the abstract is open).',
   'Rules:',
   '1. Use only MATERIAL. Do not answer from your own knowledge, and do not add any number, date, name, threshold, practice or claim that is not in MATERIAL.',
-  '2. Prefer AgriKalkunahon\'s own texts. Use the search results for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says", "Wikidata lists" or "a 2019 study from Japan found".',
+  '2. Prefer AgriKalkunahon\'s own texts. Use the search results for what those texts do not cover, and say in the sentence where it comes from, for example "Wikipedia says", "Wiktionary gives", "Wikidata lists" or "a 2019 study from Japan found".',
   '3. Keep figures, names and citations exactly as MATERIAL gives them, for example "1.5 to 3.9 °C (Basquial et al. 2021)" or "Pterocarpus indicus".',
   '4. Never make a statement wider or stronger than MATERIAL makes it, in any language. For example, "a distinct population from the Philippines" or "native to the Philippines" does not mean "found only in the Philippines", and "widely considered" does not mean "officially". Keep the limits MATERIAL gives, such as the other places where something is also found.',
   '5. For a local or scientific name, give each name with its language or place when MATERIAL gives one. Local names differ from place to place: if MATERIAL gives several, give them. If MATERIAL ties one name to more than one species, say so, and say which of them MATERIAL ties to the Philippines.',
